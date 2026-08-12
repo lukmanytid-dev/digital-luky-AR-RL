@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vision Web AR - 3D Spatial & Scroll</title>
+    <title>Vision Web AR - Pro</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <style>
         :root {
-            --glass-bg: rgba(20, 20, 20, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
             --glass-blur: 25px;
         }
 
@@ -20,10 +20,10 @@
             margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #000; user-select: none;
-            /* Membantu 3D Gyroscope */
-            perspective: 1000px;
+            orientation: landscape; 
         }
 
+        /* Video & AR Canvas */
         video {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             object-fit: cover; z-index: 1;
@@ -34,99 +34,117 @@
         }
         .mirror { transform: scaleX(-1); }
 
+        /* Kursor Tangan (Pointer Mouse) */
         #cursor {
-            position: absolute; width: 15px; height: 15px;
+            position: absolute; width: 20px; height: 20px;
             background-color: rgba(255, 255, 255, 0.9);
             border-radius: 50%; box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
             transform: translate(-50%, -50%); z-index: 9999;
-            pointer-events: none; display: none; transition: 0.1s;
+            pointer-events: none; display: none; transition: width 0.1s, height 0.1s, background-color 0.1s, transform 0.1s;
         }
         .cursor-active { 
-            background-color: #00FF00 !important; box-shadow: 0 0 20px #00FF00 !important; 
-            transform: translate(-50%, -50%) scale(0.7) !important;
+            width: 12px !important; height: 12px !important; 
+            background-color: #00FF00 !important; /* Hijau saat mengklik */
+            box-shadow: 0 0 20px #00FF00 !important; 
+            transform: translate(-50%, -50%) scale(0.8) !important;
         }
 
-        /* Container 3D Induk (Untuk Gyroscope) */
-        #ar-world {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            transform-style: preserve-3d; z-index: 50; pointer-events: none;
+        /* Kontrol Kamera & Layar */
+        #top-controls {
+            position: absolute; top: 20px; left: 20px; z-index: 100;
+            display: flex; gap: 15px;
         }
-
-        #top-controls { position: absolute; top: 20px; left: 20px; z-index: 100; display: flex; gap: 15px; pointer-events: auto;}
         .btn-control {
-            background: rgba(255,255,255,0.15); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border); color: white; padding: 10px 18px;
-            border-radius: 30px; font-size: 14px; cursor: pointer; transition: 0.2s;
-        }
-        .btn-control:hover, .btn-control.touched { background: rgba(255,255,255,0.4); transform: scale(1.05); }
-
-        /* Jendela Aplikasi Melayang (DIBUAT MIRIP FOTO 3D) */
-        .app-window {
-            position: absolute; top: 50%; left: 50%; 
-            width: 45vw; height: 65vh; min-width: 600px;
             background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
-            border: 2px solid var(--glass-border); border-radius: 20px;
-            box-shadow: -20px 20px 50px rgba(0,0,0,0.7), inset 0 0 15px rgba(255,255,255,0.1);
-            display: none; flex-direction: column; overflow: hidden;
-            pointer-events: auto;
-            
-            /* EFEK 3D PERSPEKTIF MIRIP DI FOTO */
-            transform: translate(-50%, -50%) rotateY(-20deg) rotateX(5deg);
-            transform-origin: center center;
-            transition: left 0.1s, top 0.1s;
+            border: 1px solid var(--glass-border); color: white; padding: 10px 18px;
+            border-radius: 30px; font-size: 14px; font-weight: 500; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.2s;
         }
+        .btn-control:hover, .btn-control.touched { background: rgba(255,255,255,0.5); transform: scale(1.05); }
 
-        .window-header {
-            width: 100%; height: 50px; display: flex; align-items: center; justify-content: space-between;
-            padding: 0 15px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .drag-bar-container { flex: 1; display: flex; justify-content: center; height: 100%; align-items: center; cursor: grab; }
-        .drag-bar { width: 100px; height: 6px; background: rgba(255,255,255,0.5); border-radius: 3px; pointer-events: none;}
-        .window-header.dragging .drag-bar { background: #00FF00; }
-
-        .close-btn {
-            width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%;
-            display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-weight: bold;
-        }
-        .close-btn:hover, .close-btn.touched { background: #ff453a; }
-
-        /* SCROLL WRAPPER HACK */
-        .scroll-wrapper {
-            width: 100%; flex: 1; overflow-y: auto; overflow-x: hidden; position: relative;
-            /* Sembunyikan scrollbar bawaan */
-            scrollbar-width: none; 
-        }
-        .scroll-wrapper::-webkit-scrollbar { display: none; }
-        
-        /* Iframe dibuat SANGAT TINGGI agar bisa di-scroll dari luar */
-        iframe { width: 100%; height: 2500px; border: none; pointer-events: none; background: #fff;}
-
-        /* Menu Utama */
+        /* Layar Utama 3D (Home Screen) */
         #home-screen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            display: flex; gap: 40px; pointer-events: auto;
+            display: flex; gap: 40px; z-index: 10;
         }
         .app-icon-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .app-icon {
-            width: 80px; height: 80px; border-radius: 20px; display: flex; justify-content: center; align-items: center;
-            font-size: 40px; cursor: pointer; background: var(--glass-bg); backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
+            width: 80px; height: 80px; border-radius: 20px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 40px; cursor: pointer;
+            background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 2px solid var(--glass-border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3), inset 0 0 15px rgba(255,255,255,0.2);
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        .app-icon.touched { transform: scale(0.9); background: rgba(255,255,255,0.5); }
-        .app-label { color: white; font-weight: bold; font-size: 15px; }
-        
+        .app-icon.touched { transform: scale(0.9) translateY(5px); background: rgba(255,255,255,0.6); }
+        .app-label { color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.9); font-size: 15px; letter-spacing: 1px;}
+
+        /* Jendela Aplikasi Melayang (DIPERKECIL) */
+        .app-window {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 55vw; /* Lebih kecil agar pandangan luas */
+            height: 60vh; 
+            max-width: 900px; max-height: 600px;
+            background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border); border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.4);
+            display: none; flex-direction: column; overflow: hidden; z-index: 50;
+        }
+
+        .window-header {
+            width: 100%; height: 50px; display: flex; align-items: center; justify-content: center;
+            position: relative; background: rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .drag-bar {
+            width: 100px; height: 5px; background: rgba(255,255,255,0.5);
+            border-radius: 3px; cursor: grab; transition: 0.2s; pointer-events: none;
+        }
+        .window-header.dragging .drag-bar { background: #00FF00; transform: scaleY(1.5); }
+
+        .close-btn {
+            position: absolute; left: 15px; width: 28px; height: 28px;
+            background: rgba(255,255,255,0.2); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-weight: bold; font-size: 12px;
+            transition: 0.2s;
+        }
+        .close-btn:hover, .close-btn.touched { background: #ff453a; transform: scale(1.1); }
+
+        iframe { width: 100%; flex: 1; border: none; background: #fff; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+
+        /* Keyboard Virtual (DIPERKECIL) */
+        #keyboard-window {
+            width: 55vw; height: auto; max-width: 800px; padding-bottom: 15px;
+        }
+        .kb-display {
+            width: 90%; margin: 10px auto; height: 45px; background: rgba(0,0,0,0.6);
+            border-radius: 10px; color: white; font-size: 20px; padding: 10px 15px;
+            display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.2);
+            overflow: hidden; white-space: nowrap;
+        }
+        .kb-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
+        .kb-key {
+            background: rgba(255,255,255,0.2); color: white; border-radius: 8px;
+            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center;
+            font-size: 18px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .kb-key.touched { background: #007AFF; transform: scale(0.9); }
+        .kb-space { width: 250px; }
+        .kb-del { width: 80px; background: rgba(255,80,80,0.3); }
+
+        /* Loading */
         #loading {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.9); color: white; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 99999;
+            justify-content: center; align-items: center; z-index: 99999; font-size: 20px; font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <div id="loading" class="interactive" onclick="initExperience()">
-        <h2 style="margin:0;">KLIK UNTUK MULAI AR</h2>
-        <p style="color: #ccc; font-size: 14px;">Izinkan Kamera & Sensor Gerak</p>
+    <div id="loading">
+        <div>Memuat Vision AR...</div>
+        <div style="font-size: 14px; margin-top: 10px; color: #ccc; font-weight: normal;">Izinkan akses kamera Anda</div>
     </div>
 
     <video id="videoElement" class="mirror" autoplay playsinline></video>
@@ -134,34 +152,69 @@
 
     <div id="cursor"></div>
 
-    <!-- Dunia 3D untuk sensor Giroskop -->
-    <div id="ar-world">
-        <!-- Menu Utama -->
-        <div id="home-screen">
-            <div class="app-icon-container">
-                <div class="app-icon interactive" id="icon-youtube" style="color: #ff0000;">▶</div>
-                <span class="app-label">YouTube</span>
-            </div>
-        </div>
+    <div id="top-controls">
+        <div class="btn-control interactive" id="btn-camera" onclick="toggleCamera()">📸 Kamera</div>
+        <div class="btn-control interactive" id="btn-fullscreen" onclick="toggleFullscreen()">🖥️ Penuh</div>
+    </div>
 
-        <!-- Jendela 3D -->
-        <div id="app-window" class="app-window window-draggable">
-            <div class="window-header">
-                <div class="close-btn interactive" id="btn-close">✖</div>
-                <div class="drag-bar-container interactive drag-handle">
-                    <div class="drag-bar"></div>
-                </div>
-                <div style="width: 28px;"></div>
-            </div>
-            <!-- Wrapper untuk Gestur Scroll -->
-            <div class="scroll-wrapper interactive" id="scroll-area">
-                <iframe id="app-frame" src=""></iframe>
-            </div>
+    <!-- Menu Utama -->
+    <div id="home-screen">
+        <div class="app-icon-container">
+            <div class="app-icon interactive" id="icon-youtube" style="color: #ff0000;">▶</div>
+            <span class="app-label">YouTube</span>
+        </div>
+        <div class="app-icon-container">
+            <div class="app-icon interactive" id="icon-chrome" style="color: #4285F4;">🌐</div>
+            <span class="app-label">Browser</span>
+        </div>
+        <div class="app-icon-container">
+            <div class="app-icon interactive" id="icon-keyboard" style="color: #fff;">⌨️</div>
+            <span class="app-label">Keyboard</span>
         </div>
     </div>
 
-    <div id="top-controls">
-        <div class="btn-control interactive" id="btn-camera" onclick="toggleCamera()">📸 Balik Kamera</div>
+    <!-- Jendela YouTube/Browser -->
+    <div id="app-window" class="app-window window-draggable">
+        <div class="window-header interactive drag-handle">
+            <div class="close-btn interactive" id="btn-close">✖</div>
+            <div class="drag-bar"></div>
+        </div>
+        <!-- Iframe -->
+        <iframe id="app-frame" src="" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <!-- Jendela Keyboard -->
+    <div id="keyboard-window" class="app-window window-draggable">
+        <div class="window-header interactive drag-handle">
+            <div class="close-btn interactive" id="btn-close-kb">✖</div>
+            <div class="drag-bar"></div>
+        </div>
+        <div class="kb-display" id="kb-output"></div>
+        
+        <div class="kb-row">
+            <div class="kb-key interactive key-char">Q</div><div class="kb-key interactive key-char">W</div>
+            <div class="kb-key interactive key-char">E</div><div class="kb-key interactive key-char">R</div>
+            <div class="kb-key interactive key-char">T</div><div class="kb-key interactive key-char">Y</div>
+            <div class="kb-key interactive key-char">U</div><div class="kb-key interactive key-char">I</div>
+            <div class="kb-key interactive key-char">O</div><div class="kb-key interactive key-char">P</div>
+        </div>
+        <div class="kb-row">
+            <div class="kb-key interactive key-char">A</div><div class="kb-key interactive key-char">S</div>
+            <div class="kb-key interactive key-char">D</div><div class="kb-key interactive key-char">F</div>
+            <div class="kb-key interactive key-char">G</div><div class="kb-key interactive key-char">H</div>
+            <div class="kb-key interactive key-char">J</div><div class="kb-key interactive key-char">K</div>
+            <div class="kb-key interactive key-char">L</div>
+        </div>
+        <div class="kb-row">
+            <div class="kb-key interactive key-char">Z</div><div class="kb-key interactive key-char">X</div>
+            <div class="kb-key interactive key-char">C</div><div class="kb-key interactive key-char">V</div>
+            <div class="kb-key interactive key-char">B</div><div class="kb-key interactive key-char">N</div>
+            <div class="kb-key interactive key-char">M</div>
+            <div class="kb-key interactive kb-del">DEL</div>
+        </div>
+        <div class="kb-row">
+            <div class="kb-key interactive kb-space key-char">SPACE</div>
+        </div>
     </div>
 
     <script>
@@ -170,197 +223,230 @@
         const canvasCtx = canvasElement.getContext('2d');
         const cursor = document.getElementById('cursor');
         
-        const arWorld = document.getElementById('ar-world');
         const homeScreen = document.getElementById('home-screen');
         const appWindow = document.getElementById('app-window');
         const appFrame = document.getElementById('app-frame');
-        const scrollArea = document.getElementById('scroll-area');
+        const keyboardWindow = document.getElementById('keyboard-window');
+        const kbOutput = document.getElementById('kb-output');
         
         let isFrontCamera = true;
         let stream = null;
         
-        // State Gestur
         let wasTouching = false; 
-        let activeAction = null; // 'drag' atau 'scroll'
-        let dragOffsetX = 0; let dragOffsetY = 0;
-        let scrollStartY = 0; let initialScrollTop = 0;
+        let activeDraggedWindow = null; 
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
 
-        // Giroskop (Pseudo-World Tracking)
-        let baseAlpha = null; 
-        let baseBeta = null;
-
-        function resizeCanvas() { canvasElement.width = window.innerWidth; canvasElement.height = window.innerHeight; }
-        window.addEventListener('resize', resizeCanvas); resizeCanvas();
-
-        async function initExperience() {
-            document.getElementById('loading').style.display = 'none';
-            await startCamera();
-            startGyroscope();
-            startMediaPipe();
+        function resizeCanvas() {
+            canvasElement.width = window.innerWidth;
+            canvasElement.height = window.innerHeight;
         }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
         async function startCamera() {
-            if (stream) stream.getTracks().forEach(track => track.stop());
+            if (stream) { stream.getTracks().forEach(track => track.stop()); }
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFrontCamera ? "user" : "environment", width: { ideal: 1280 } }});
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: isFrontCamera ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
                 videoElement.srcObject = stream;
                 if (isFrontCamera) videoElement.classList.add('mirror');
                 else videoElement.classList.remove('mirror');
-            } catch (err) { alert("Gagal kamera: " + err.message); }
+            } catch (err) {
+                alert("Gagal mengakses kamera: " + err.message);
+            }
         }
 
         function toggleCamera() { isFrontCamera = !isFrontCamera; startCamera(); }
-
-        // ================= GIROSKOP (AGAR TETAP DI TEMPAT) =================
-        function startGyroscope() {
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission().then(r => { if(r === 'granted') addGyroListener(); });
-            } else { addGyroListener(); }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.log(err));
+            else document.exitFullscreen();
         }
 
-        function addGyroListener() {
-            window.addEventListener('deviceorientation', (event) => {
-                if(!baseAlpha) baseAlpha = event.alpha;
-                if(!baseBeta) baseBeta = event.beta;
-
-                // Hitung pergerakan HP
-                let diffX = event.alpha - baseAlpha;
-                let diffY = event.beta - baseBeta;
-
-                // Pindahkan ar-world berlawanan arah dengan HP (EFEK MELAYANG DI RUANGAN)
-                arWorld.style.transform = `translate3d(${diffX * 5}px, ${diffY * 5}px, 0px)`;
-            });
-        }
-
-        function openApp() {
+        function openApp(appId) {
             homeScreen.style.display = 'none';
-            appWindow.style.display = 'flex';
-            // PENTING: Gunakan Yewtu.be karena iframe youtube asli diblokir total
-            appFrame.src = "https://yewtu.be/"; 
-            appWindow.style.left = '50%'; appWindow.style.top = '50%';
-        }
-        function closeApp() {
-            appWindow.style.display = 'none'; appFrame.src = ""; homeScreen.style.display = 'flex';
-        }
-
-        // ================= MEDIAPIPE GESTURE =================
-        function startMediaPipe() {
-            const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-            hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
-
-            hands.onResults((results) => {
-                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                    const landmarks = results.multiHandLandmarks[0];
-                    const getScreenPos = (lm) => {
-                        let x = lm.x * window.innerWidth;
-                        if (isFrontCamera) x = (1 - lm.x) * window.innerWidth;
-                        return { x: x, y: lm.y * window.innerHeight };
-                    };
-
-                    const indexTip = getScreenPos(landmarks[8]);
-                    const thumbTip = getScreenPos(landmarks[4]);
-                    const indexBase = getScreenPos(landmarks[5]);
-                    
-                    const pointerX = indexTip.x + (indexTip.x - indexBase.x) * 0.3;
-                    const pointerY = indexTip.y + (indexTip.y - indexBase.y) * 0.3;
-
-                    // Gambar garis laser
-                    canvasCtx.lineWidth = 4; canvasCtx.strokeStyle = "#00FF00";
-                    canvasCtx.beginPath(); canvasCtx.moveTo(indexTip.x, indexTip.y); canvasCtx.lineTo(pointerX, pointerY); canvasCtx.stroke();
-
-                    cursor.style.display = 'block'; cursor.style.left = `${pointerX}px`; cursor.style.top = `${pointerY}px`;
-
-                    const isTouching = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y) < 50;
-
-                    if (isTouching) {
-                        cursor.classList.add('cursor-active');
-                        if (!wasTouching) processPinchStart(pointerX, pointerY);
-                        else processPinchMove(pointerX, pointerY);
-                        wasTouching = true;
-                    } else {
-                        cursor.classList.remove('cursor-active');
-                        if (wasTouching) processPinchEnd(pointerX, pointerY);
-                        wasTouching = false;
-                    }
-                } else { cursor.style.display = 'none'; wasTouching = false; activeAction = null; }
-            });
-
-            let lastVideoTime = -1;
-            async function detectionLoop() {
-                if (videoElement.readyState >= 2 && !videoElement.paused) {
-                    if (videoElement.currentTime !== lastVideoTime) {
-                        lastVideoTime = videoElement.currentTime;
-                        try { await hands.send({ image: videoElement }); } catch(e) {}
-                    }
-                }
-                requestAnimationFrame(detectionLoop);
+            if(appId === 'icon-youtube') {
+                appWindow.style.display = 'flex';
+                // URL Utama Dashboard YouTube
+                appFrame.src = "https://www.youtube.com/"; 
+            } else if (appId === 'icon-chrome') {
+                appWindow.style.display = 'flex';
+                appFrame.src = "https://id.wikipedia.org/"; 
+            } else if (appId === 'icon-keyboard') {
+                keyboardWindow.style.display = 'flex';
             }
-            detectionLoop();
+            
+            // Tengahkan jendela
+            document.querySelectorAll('.app-window').forEach(win => {
+                if(win.style.display === 'flex') {
+                    win.style.left = '50%'; win.style.top = '50%';
+                    win.style.transform = 'translate(-50%, -50%)';
+                }
+            });
         }
 
-        // ================= LOGIKA KLIK, DRAG, & SCROLL =================
-        function processPinchStart(x, y) {
+        function closeApps() {
+            appWindow.style.display = 'none';
+            keyboardWindow.style.display = 'none';
+            appFrame.src = ""; 
+            homeScreen.style.display = 'flex';
+        }
+
+        // ================= MEDIAPIPE =================
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+
+        const HAND_CONNECTIONS = [
+            [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8], [5,9],[9,10],[10,11],[11,12],
+            [9,13],[13,14],[14,15],[15,16], [13,17],[0,17],[17,18],[18,19],[19,20]
+        ];
+
+        hands.onResults((results) => {
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                
+                const getScreenPos = (lm) => {
+                    let x = lm.x * window.innerWidth;
+                    if (isFrontCamera) x = (1 - lm.x) * window.innerWidth;
+                    return { x: x, y: lm.y * window.innerHeight };
+                };
+
+                canvasCtx.lineWidth = 3;
+                canvasCtx.strokeStyle = "rgba(0, 255, 255, 0.4)";
+                HAND_CONNECTIONS.forEach(pair => {
+                    const p1 = getScreenPos(landmarks[pair[0]]);
+                    const p2 = getScreenPos(landmarks[pair[1]]);
+                    canvasCtx.beginPath(); canvasCtx.moveTo(p1.x, p1.y); canvasCtx.lineTo(p2.x, p2.y); canvasCtx.stroke();
+                });
+
+                const indexTip = getScreenPos(landmarks[8]);
+                const thumbTip = getScreenPos(landmarks[4]);
+                const indexBase = getScreenPos(landmarks[5]);
+                
+                // Laser pointer
+                const pointerX = indexTip.x + (indexTip.x - indexBase.x) * 0.3;
+                const pointerY = indexTip.y + (indexTip.y - indexBase.y) * 0.3;
+
+                canvasCtx.lineWidth = 4;
+                canvasCtx.strokeStyle = "rgba(0, 255, 0, 0.7)";
+                canvasCtx.beginPath(); canvasCtx.moveTo(indexTip.x, indexTip.y); canvasCtx.lineTo(pointerX, pointerY); canvasCtx.stroke();
+
+                cursor.style.display = 'block';
+                cursor.style.left = `${pointerX}px`;
+                cursor.style.top = `${pointerY}px`;
+
+                // Deteksi Menjepit
+                const pinchDist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+                const isTouching = pinchDist < 55;
+
+                if (isTouching) {
+                    cursor.classList.add('cursor-active');
+                    if (!wasTouching) {
+                        simulateMouseAction(pointerX, pointerY, 'mousedown'); // Mouse ditekan
+                    } else if (activeDraggedWindow) {
+                        handleDragging(pointerX, pointerY);
+                    }
+                    wasTouching = true;
+                } else {
+                    cursor.classList.remove('cursor-active');
+                    if (wasTouching) {
+                        simulateMouseAction(pointerX, pointerY, 'mouseup'); // Mouse dilepas
+                        
+                        if (activeDraggedWindow) {
+                            activeDraggedWindow.querySelector('.window-header').classList.remove('dragging');
+                            activeDraggedWindow = null;
+                        }
+                    }
+                    wasTouching = false;
+                }
+            } else {
+                cursor.style.display = 'none';
+                wasTouching = false;
+                activeDraggedWindow = null;
+            }
+        });
+
+        let lastVideoTime = -1;
+        async function detectionLoop() {
+            if (videoElement.readyState >= 2 && !videoElement.paused) {
+                document.getElementById('loading').style.display = 'none';
+                if (videoElement.currentTime !== lastVideoTime) {
+                    lastVideoTime = videoElement.currentTime;
+                    try { await hands.send({ image: videoElement }); } catch(e) {}
+                }
+            }
+            requestAnimationFrame(detectionLoop);
+        }
+
+        startCamera().then(() => detectionLoop());
+
+        // ================= SISTEM MOUSE (KLIK & DRAG) =================
+        function simulateMouseAction(x, y, type) {
             cursor.style.display = 'none'; 
             const element = document.elementFromPoint(x, y);
             cursor.style.display = 'block';
             
             if (!element) return;
 
-            // 1. Apakah mencubit Header untuk Pindah Jendela?
-            if (element.closest('.drag-handle')) {
-                activeAction = 'drag';
-                element.closest('.window-header').classList.add('dragging');
-                const rect = appWindow.getBoundingClientRect();
-                dragOffsetX = x - rect.left;
-                dragOffsetY = y - rect.top;
-                return;
+            // 1. Sistem Drag Window
+            if (type === 'mousedown') {
+                const header = element.closest('.drag-handle');
+                if (header) {
+                    const win = header.closest('.window-draggable');
+                    if (win && win.style.display !== 'none') {
+                        activeDraggedWindow = win;
+                        header.classList.add('dragging');
+                        const rect = win.getBoundingClientRect();
+                        win.style.transform = 'none'; 
+                        win.style.left = rect.left + 'px';
+                        win.style.top = rect.top + 'px';
+                        
+                        dragOffsetX = x - rect.left;
+                        dragOffsetY = y - rect.top;
+                        return;
+                    }
+                }
             }
 
-            // 2. Apakah mencubit Badan Iframe untuk SCROLL?
-            if (element.closest('#scroll-area')) {
-                activeAction = 'scroll';
-                scrollStartY = y; // Catat posisi Y awal tangan
-                initialScrollTop = scrollArea.scrollTop; // Catat posisi scroll awal halaman
-                return;
-            }
-
-            // 3. Efek Klik Tombol UI
-            if(element.classList.contains('interactive')) element.classList.add('touched'); 
-        }
-
-        function processPinchMove(x, y) {
-            if (activeAction === 'drag') {
-                // Geser Jendela
-                appWindow.style.left = `${x - dragOffsetX}px`;
-                appWindow.style.top = `${y - dragOffsetY}px`;
+            // 2. Sistem Klik Asli (Synthetic Event)
+            const evOptions = { view: window, bubbles: true, cancelable: true, clientX: x, clientY: y };
+            
+            if (type === 'mousedown') {
+                element.dispatchEvent(new MouseEvent('mousedown', evOptions));
+                element.classList.add('touched'); // Efek visual
             } 
-            else if (activeAction === 'scroll') {
-                // SCROLL HALAMAN YOUTUBE
-                const deltaY = scrollStartY - y; 
-                // Kalikan kecepatan scroll agar responsif
-                scrollArea.scrollTop = initialScrollTop + (deltaY * 3); 
-            }
-        }
-
-        function processPinchEnd(x, y) {
-            activeAction = null;
-            document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-            document.querySelectorAll('.touched').forEach(el => el.classList.remove('touched'));
-
-            cursor.style.display = 'none'; 
-            const element = document.elementFromPoint(x, y);
-            cursor.style.display = 'block';
-
-            if (element) {
+            else if (type === 'mouseup') {
+                element.dispatchEvent(new MouseEvent('mouseup', evOptions));
+                element.dispatchEvent(new MouseEvent('click', evOptions)); // Jalankan KLIK
+                
+                element.classList.remove('touched');
+                
+                // Aksi UI Kita
                 const target = element.closest('.interactive');
                 if (target) {
                     const id = target.id;
-                    if (id === 'icon-youtube') openApp();
-                    else if (id === 'btn-close') closeApp();
+                    if (id === 'icon-youtube' || id === 'icon-chrome' || id === 'icon-keyboard') openApp(id);
+                    else if (id === 'btn-close' || id === 'btn-close-kb') closeApps();
                     else if (id === 'btn-camera') toggleCamera();
+                    else if (id === 'btn-fullscreen') toggleFullscreen();
+                    
+                    else if (target.classList.contains('key-char')) {
+                        kbOutput.innerText += (target.innerText === 'SPACE' ? ' ' : target.innerText);
+                    }
+                    else if (target.classList.contains('kb-del')) {
+                        kbOutput.innerText = kbOutput.innerText.slice(0, -1);
+                    }
                 }
             }
+        }
+
+        function handleDragging(x, y) {
+            if (!activeDraggedWindow) return;
+            activeDraggedWindow.style.left = `${x - dragOffsetX}px`;
+            activeDraggedWindow.style.top = `${y - dragOffsetY}px`;
         }
     </script>
 </body>
