@@ -44,7 +44,7 @@
         }
         .cursor-active { 
             width: 12px !important; height: 12px !important; 
-            background-color: #00FF00 !important; /* Hijau saat mengklik */
+            background-color: #00FF00 !important; 
             box-shadow: 0 0 20px #00FF00 !important; 
             transform: translate(-50%, -50%) scale(0.8) !important;
         }
@@ -80,10 +80,10 @@
         .app-icon.touched { transform: scale(0.9) translateY(5px); background: rgba(255,255,255,0.6); }
         .app-label { color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.9); font-size: 15px; letter-spacing: 1px;}
 
-        /* Jendela Aplikasi Melayang (DIPERKECIL) */
+        /* Jendela Aplikasi Melayang */
         .app-window {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 55vw; /* Lebih kecil agar pandangan luas */
+            width: 55vw; 
             height: 60vh; 
             max-width: 900px; max-height: 600px;
             background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
@@ -93,28 +93,36 @@
         }
 
         .window-header {
-            width: 100%; height: 50px; display: flex; align-items: center; justify-content: center;
-            position: relative; background: rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);
+            width: 100%; height: 50px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 15px; position: relative; background: rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);
         }
+        .drag-bar-container { flex: 1; display: flex; justify-content: center; height: 100%; align-items: center; cursor: grab; }
         .drag-bar {
             width: 100px; height: 5px; background: rgba(255,255,255,0.5);
-            border-radius: 3px; cursor: grab; transition: 0.2s; pointer-events: none;
+            border-radius: 3px; transition: 0.2s; pointer-events: none;
         }
         .window-header.dragging .drag-bar { background: #00FF00; transform: scaleY(1.5); }
 
         .close-btn {
-            position: absolute; left: 15px; width: 28px; height: 28px;
-            background: rgba(255,255,255,0.2); border-radius: 50%;
+            width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%;
             display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-weight: bold; font-size: 12px;
-            transition: 0.2s;
+            transition: 0.2s; z-index: 2;
         }
         .close-btn:hover, .close-btn.touched { background: #ff453a; transform: scale(1.1); }
 
+        /* Tombol Cari di AR */
+        .search-btn {
+            background: rgba(0, 122, 255, 0.8); color: white; padding: 5px 12px; border-radius: 15px;
+            font-size: 13px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.3);
+            transition: 0.2s; z-index: 2;
+        }
+        .search-btn:hover, .search-btn.touched { background: #0056b3; transform: scale(1.05); }
+
         iframe { width: 100%; flex: 1; border: none; background: #fff; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
 
-        /* Keyboard Virtual (DIPERKECIL) */
+        /* Keyboard Virtual */
         #keyboard-window {
-            width: 55vw; height: auto; max-width: 800px; padding-bottom: 15px;
+            width: 55vw; height: auto; max-width: 800px; padding-bottom: 15px; z-index: 60;
         }
         .kb-display {
             width: 90%; margin: 10px auto; height: 45px; background: rgba(0,0,0,0.6);
@@ -129,8 +137,9 @@
             font-size: 18px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
         }
         .kb-key.touched { background: #007AFF; transform: scale(0.9); }
-        .kb-space { width: 250px; }
+        .kb-space { width: 200px; }
         .kb-del { width: 80px; background: rgba(255,80,80,0.3); }
+        .kb-enter { width: 100px; background: rgba(0,255,0,0.3); color: white; }
 
         /* Loading */
         #loading {
@@ -175,19 +184,28 @@
 
     <!-- Jendela YouTube/Browser -->
     <div id="app-window" class="app-window window-draggable">
-        <div class="window-header interactive drag-handle">
+        <div class="window-header">
             <div class="close-btn interactive" id="btn-close">✖</div>
-            <div class="drag-bar"></div>
+            <!-- Area Drag -->
+            <div class="drag-bar-container interactive drag-handle">
+                <div class="drag-bar"></div>
+            </div>
+            <!-- Tombol Cari -->
+            <div class="search-btn interactive" id="btn-open-search">🔍 Cari Video</div>
         </div>
-        <!-- Iframe -->
+        <!-- Iframe menggunakan Yewtu.be (Frontend YouTube yang bebas Iframe) -->
         <iframe id="app-frame" src="" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
 
     <!-- Jendela Keyboard -->
     <div id="keyboard-window" class="app-window window-draggable">
-        <div class="window-header interactive drag-handle">
+        <div class="window-header">
+            <!-- Tombol ini hanya menutup Keyboard -->
             <div class="close-btn interactive" id="btn-close-kb">✖</div>
-            <div class="drag-bar"></div>
+            <div class="drag-bar-container interactive drag-handle">
+                <div class="drag-bar"></div>
+            </div>
+            <div style="width: 28px;"></div> <!-- Spasi -->
         </div>
         <div class="kb-display" id="kb-output"></div>
         
@@ -214,6 +232,7 @@
         </div>
         <div class="kb-row">
             <div class="kb-key interactive kb-space key-char">SPACE</div>
+            <div class="kb-key interactive kb-enter" id="btn-search-enter">ENTER</div>
         </div>
     </div>
 
@@ -268,13 +287,14 @@
             homeScreen.style.display = 'none';
             if(appId === 'icon-youtube') {
                 appWindow.style.display = 'flex';
-                // URL Utama Dashboard YouTube
-                appFrame.src = "https://www.youtube.com/"; 
+                // Gunakan Yewtu.be agar bebas blokir iframe
+                appFrame.src = "https://yewtu.be/"; 
             } else if (appId === 'icon-chrome') {
                 appWindow.style.display = 'flex';
-                appFrame.src = "https://www.google.com/"; 
+                appFrame.src = "https://id.wikipedia.org/"; 
             } else if (appId === 'icon-keyboard') {
                 keyboardWindow.style.display = 'flex';
+                kbOutput.innerText = "";
             }
             
             // Tengahkan jendela
@@ -291,6 +311,10 @@
             keyboardWindow.style.display = 'none';
             appFrame.src = ""; 
             homeScreen.style.display = 'flex';
+        }
+
+        function closeKeyboardOnly() {
+            keyboardWindow.style.display = 'none';
         }
 
         // ================= MEDIAPIPE =================
@@ -326,7 +350,6 @@
                 const thumbTip = getScreenPos(landmarks[4]);
                 const indexBase = getScreenPos(landmarks[5]);
                 
-                // Laser pointer
                 const pointerX = indexTip.x + (indexTip.x - indexBase.x) * 0.3;
                 const pointerY = indexTip.y + (indexTip.y - indexBase.y) * 0.3;
 
@@ -338,14 +361,13 @@
                 cursor.style.left = `${pointerX}px`;
                 cursor.style.top = `${pointerY}px`;
 
-                // Deteksi Menjepit
                 const pinchDist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
                 const isTouching = pinchDist < 55;
 
                 if (isTouching) {
                     cursor.classList.add('cursor-active');
                     if (!wasTouching) {
-                        simulateMouseAction(pointerX, pointerY, 'mousedown'); // Mouse ditekan
+                        simulateMouseAction(pointerX, pointerY, 'mousedown'); 
                     } else if (activeDraggedWindow) {
                         handleDragging(pointerX, pointerY);
                     }
@@ -353,7 +375,7 @@
                 } else {
                     cursor.classList.remove('cursor-active');
                     if (wasTouching) {
-                        simulateMouseAction(pointerX, pointerY, 'mouseup'); // Mouse dilepas
+                        simulateMouseAction(pointerX, pointerY, 'mouseup'); 
                         
                         if (activeDraggedWindow) {
                             activeDraggedWindow.querySelector('.window-header').classList.remove('dragging');
@@ -391,14 +413,13 @@
             
             if (!element) return;
 
-            // 1. Sistem Drag Window
             if (type === 'mousedown') {
                 const header = element.closest('.drag-handle');
                 if (header) {
                     const win = header.closest('.window-draggable');
                     if (win && win.style.display !== 'none') {
                         activeDraggedWindow = win;
-                        header.classList.add('dragging');
+                        header.closest('.window-header').classList.add('dragging');
                         const rect = win.getBoundingClientRect();
                         win.style.transform = 'none'; 
                         win.style.left = rect.left + 'px';
@@ -411,28 +432,47 @@
                 }
             }
 
-            // 2. Sistem Klik Asli (Synthetic Event)
             const evOptions = { view: window, bubbles: true, cancelable: true, clientX: x, clientY: y };
             
             if (type === 'mousedown') {
                 element.dispatchEvent(new MouseEvent('mousedown', evOptions));
-                element.classList.add('touched'); // Efek visual
+                if(element.classList.contains('interactive')) element.classList.add('touched'); 
             } 
             else if (type === 'mouseup') {
                 element.dispatchEvent(new MouseEvent('mouseup', evOptions));
-                element.dispatchEvent(new MouseEvent('click', evOptions)); // Jalankan KLIK
+                element.dispatchEvent(new MouseEvent('click', evOptions)); 
                 
-                element.classList.remove('touched');
+                if(element.classList.contains('interactive')) element.classList.remove('touched');
                 
-                // Aksi UI Kita
+                // Aksi UI AR Kita
                 const target = element.closest('.interactive');
                 if (target) {
                     const id = target.id;
                     if (id === 'icon-youtube' || id === 'icon-chrome' || id === 'icon-keyboard') openApp(id);
-                    else if (id === 'btn-close' || id === 'btn-close-kb') closeApps();
+                    else if (id === 'btn-close') closeApps();
+                    else if (id === 'btn-close-kb') closeKeyboardOnly(); // Hilangkan keyboard saja
                     else if (id === 'btn-camera') toggleCamera();
                     else if (id === 'btn-fullscreen') toggleFullscreen();
                     
+                    // Buka keyboard untuk mencari
+                    else if (id === 'btn-open-search') {
+                        keyboardWindow.style.display = 'flex';
+                        keyboardWindow.style.left = '50%';
+                        keyboardWindow.style.top = '70%';
+                        keyboardWindow.style.transform = 'translate(-50%, -50%)';
+                        kbOutput.innerText = "";
+                    }
+                    // Aksi mencari/Enter
+                    else if (id === 'btn-search-enter') {
+                        const query = kbOutput.innerText.trim();
+                        if(query !== "") {
+                            // Masukkan hasil pencarian ke Iframe
+                            appFrame.src = "https://yewtu.be/search?q=" + encodeURIComponent(query);
+                        }
+                        closeKeyboardOnly();
+                    }
+                    
+                    // Mengetik di keyboard
                     else if (target.classList.contains('key-char')) {
                         kbOutput.innerText += (target.innerText === 'SPACE' ? ' ' : target.innerText);
                     }
