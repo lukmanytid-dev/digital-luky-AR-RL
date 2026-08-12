@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vision Web AR - Stable & Keyboard</title>
+    <title>Vision Web AR - Pro</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
@@ -34,17 +34,19 @@
         }
         .mirror { transform: scaleX(-1); }
 
-        /* Kursor Tangan (Telunjuk) */
+        /* Kursor Tangan (Pointer Mouse) */
         #cursor {
-            position: absolute; width: 24px; height: 24px;
+            position: absolute; width: 20px; height: 20px;
             background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 50%; box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            border-radius: 50%; box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
             transform: translate(-50%, -50%); z-index: 9999;
-            pointer-events: none; display: none; transition: width 0.1s, height 0.1s, background-color 0.1s;
+            pointer-events: none; display: none; transition: width 0.1s, height 0.1s, background-color 0.1s, transform 0.1s;
         }
         .cursor-active { 
-            width: 15px !important; height: 15px !important; 
-            background-color: #007AFF !important; box-shadow: 0 0 20px #007AFF !important; 
+            width: 12px !important; height: 12px !important; 
+            background-color: #00FF00 !important; /* Hijau saat mengklik */
+            box-shadow: 0 0 20px #00FF00 !important; 
+            transform: translate(-50%, -50%) scale(0.8) !important;
         }
 
         /* Kontrol Kamera & Layar */
@@ -54,86 +56,87 @@
         }
         .btn-control {
             background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
-            border: 1px solid var(--glass-border); color: white; padding: 12px 20px;
-            border-radius: 30px; font-size: 16px; font-weight: 500; cursor: pointer;
+            border: 1px solid var(--glass-border); color: white; padding: 10px 18px;
+            border-radius: 30px; font-size: 14px; font-weight: 500; cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.2s;
         }
-        .btn-control:hover, .btn-control.touched { background: rgba(255,255,255,0.4); transform: scale(1.05); }
+        .btn-control:hover, .btn-control.touched { background: rgba(255,255,255,0.5); transform: scale(1.05); }
 
         /* Layar Utama 3D (Home Screen) */
         #home-screen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            display: flex; gap: 50px; z-index: 10;
+            display: flex; gap: 40px; z-index: 10;
         }
-        .app-icon-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .app-icon-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .app-icon {
-            width: 100px; height: 100px; border-radius: 25px;
+            width: 80px; height: 80px; border-radius: 20px;
             display: flex; justify-content: center; align-items: center;
-            font-size: 50px; cursor: pointer;
+            font-size: 40px; cursor: pointer;
             background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
             border: 2px solid var(--glass-border);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4), inset 0 0 15px rgba(255,255,255,0.2);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3), inset 0 0 15px rgba(255,255,255,0.2);
             transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        .app-icon.touched { transform: scale(0.9) translateY(5px); background: rgba(255,255,255,0.5); box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
-        .app-label { color: white; font-weight: 600; text-shadow: 0 2px 5px rgba(0,0,0,0.8); font-size: 18px; letter-spacing: 1px;}
+        .app-icon.touched { transform: scale(0.9) translateY(5px); background: rgba(255,255,255,0.6); }
+        .app-label { color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.9); font-size: 15px; letter-spacing: 1px;}
 
-        /* Jendela Aplikasi Melayang */
+        /* Jendela Aplikasi Melayang (DIPERKECIL) */
         .app-window {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 85vw; height: 80vh; max-width: 1200px; max-height: 800px;
-            background: rgba(20, 20, 20, 0.6); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
-            border: 1px solid var(--glass-border); border-radius: 24px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.4);
+            width: 55vw; /* Lebih kecil agar pandangan luas */
+            height: 60vh; 
+            max-width: 900px; max-height: 600px;
+            background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border); border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.4);
             display: none; flex-direction: column; overflow: hidden; z-index: 50;
         }
 
         .window-header {
-            width: 100%; height: 60px; display: flex; align-items: center; justify-content: center;
-            position: relative; background: rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.1);
+            width: 100%; height: 50px; display: flex; align-items: center; justify-content: center;
+            position: relative; background: rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .drag-bar {
-            width: 120px; height: 6px; background: rgba(255,255,255,0.4);
+            width: 100px; height: 5px; background: rgba(255,255,255,0.5);
             border-radius: 3px; cursor: grab; transition: 0.2s; pointer-events: none;
         }
-        .window-header.dragging .drag-bar { background: #007AFF; transform: scaleY(1.5); }
+        .window-header.dragging .drag-bar { background: #00FF00; transform: scaleY(1.5); }
 
         .close-btn {
-            position: absolute; left: 20px; width: 30px; height: 30px;
+            position: absolute; left: 15px; width: 28px; height: 28px;
             background: rgba(255,255,255,0.2); border-radius: 50%;
-            display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-weight: bold; font-size: 14px;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-weight: bold; font-size: 12px;
             transition: 0.2s;
         }
         .close-btn:hover, .close-btn.touched { background: #ff453a; transform: scale(1.1); }
 
-        iframe { width: 100%; flex: 1; border: none; background: #000; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+        iframe { width: 100%; flex: 1; border: none; background: #fff; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
 
-        /* Keyboard Virtual */
+        /* Keyboard Virtual (DIPERKECIL) */
         #keyboard-window {
-            width: 800px; height: 400px; max-width: 90vw; background: rgba(30,30,30,0.85);
-            display: none; flex-direction: column; padding-bottom: 20px;
+            width: 55vw; height: auto; max-width: 800px; padding-bottom: 15px;
         }
         .kb-display {
-            width: 90%; margin: 15px auto; height: 50px; background: rgba(0,0,0,0.5);
-            border-radius: 10px; color: white; font-size: 24px; padding: 10px 15px;
+            width: 90%; margin: 10px auto; height: 45px; background: rgba(0,0,0,0.6);
+            border-radius: 10px; color: white; font-size: 20px; padding: 10px 15px;
             display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.2);
             overflow: hidden; white-space: nowrap;
         }
-        .kb-row { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+        .kb-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
         .kb-key {
-            background: rgba(255,255,255,0.15); color: white; border-radius: 10px;
-            width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;
-            font-size: 20px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.2); color: white; border-radius: 8px;
+            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center;
+            font-size: 18px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
         }
-        .kb-key.touched { background: #007AFF; transform: scale(0.95); }
-        .kb-space { width: 300px; }
-        .kb-del { width: 100px; background: rgba(255,80,80,0.2); }
+        .kb-key.touched { background: #007AFF; transform: scale(0.9); }
+        .kb-space { width: 250px; }
+        .kb-del { width: 80px; background: rgba(255,80,80,0.3); }
 
         /* Loading */
         #loading {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.9); color: white; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 99999; font-size: 24px; font-weight: bold;
+            justify-content: center; align-items: center; z-index: 99999; font-size: 20px; font-weight: bold;
         }
     </style>
 </head>
@@ -141,18 +144,17 @@
 
     <div id="loading">
         <div>Memuat Vision AR...</div>
-        <div style="font-size: 16px; margin-top: 10px; color: #ccc; font-weight: normal;">Pastikan izin kamera diberikan</div>
+        <div style="font-size: 14px; margin-top: 10px; color: #ccc; font-weight: normal;">Izinkan akses kamera Anda</div>
     </div>
 
     <video id="videoElement" class="mirror" autoplay playsinline></video>
-    <!-- Canvas untuk menggambar garis tangan & pointer -->
     <canvas id="ar-canvas"></canvas>
 
     <div id="cursor"></div>
 
     <div id="top-controls">
-        <div class="btn-control interactive" id="btn-camera" onclick="toggleCamera()">📸 Ganti Kamera</div>
-        <div class="btn-control interactive" id="btn-fullscreen" onclick="toggleFullscreen()">🖥️ Layar Penuh</div>
+        <div class="btn-control interactive" id="btn-camera" onclick="toggleCamera()">📸 Kamera</div>
+        <div class="btn-control interactive" id="btn-fullscreen" onclick="toggleFullscreen()">🖥️ Penuh</div>
     </div>
 
     <!-- Menu Utama -->
@@ -177,7 +179,8 @@
             <div class="close-btn interactive" id="btn-close">✖</div>
             <div class="drag-bar"></div>
         </div>
-        <iframe id="app-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <!-- Iframe -->
+        <iframe id="app-frame" src="" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
 
     <!-- Jendela Keyboard -->
@@ -229,13 +232,11 @@
         let isFrontCamera = true;
         let stream = null;
         
-        // State Interaksi Tangan
         let wasTouching = false; 
         let activeDraggedWindow = null; 
         let dragOffsetX = 0;
         let dragOffsetY = 0;
 
-        // Resize Canvas
         function resizeCanvas() {
             canvasElement.width = window.innerWidth;
             canvasElement.height = window.innerHeight;
@@ -243,7 +244,6 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // ================= SISTEM KAMERA =================
         async function startCamera() {
             if (stream) { stream.getTracks().forEach(track => track.stop()); }
             try {
@@ -258,33 +258,26 @@
             }
         }
 
-        function toggleCamera() {
-            isFrontCamera = !isFrontCamera;
-            startCamera(); 
-        }
-
+        function toggleCamera() { isFrontCamera = !isFrontCamera; startCamera(); }
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
-            } else {
-                document.exitFullscreen();
-            }
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.log(err));
+            else document.exitFullscreen();
         }
 
-        // ================= MANAJEMEN APLIKASI =================
         function openApp(appId) {
             homeScreen.style.display = 'none';
             if(appId === 'icon-youtube') {
                 appWindow.style.display = 'flex';
-                // Menghapus autoplay (autoplay=0) agar tidak langsung berbunyi
-                appFrame.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0";
+                // URL Utama Dashboard YouTube
+                appFrame.src = "https://www.youtube.com/"; 
             } else if (appId === 'icon-chrome') {
                 appWindow.style.display = 'flex';
                 appFrame.src = "https://id.wikipedia.org/"; 
             } else if (appId === 'icon-keyboard') {
                 keyboardWindow.style.display = 'flex';
             }
-            // Reset posisi ke tengah saat baru buka
+            
+            // Tengahkan jendela
             document.querySelectorAll('.app-window').forEach(win => {
                 if(win.style.display === 'flex') {
                     win.style.left = '50%'; win.style.top = '50%';
@@ -296,19 +289,13 @@
         function closeApps() {
             appWindow.style.display = 'none';
             keyboardWindow.style.display = 'none';
-            appFrame.src = ""; // Stop video
+            appFrame.src = ""; 
             homeScreen.style.display = 'flex';
         }
 
-        // ================= MEDIAPIPE & DRAWING =================
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-
-        hands.setOptions({
-            maxNumHands: 1, modelComplexity: 1,
-            minDetectionConfidence: 0.7, minTrackingConfidence: 0.7
-        });
+        // ================= MEDIAPIPE =================
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
 
         const HAND_CONNECTIONS = [
             [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8], [5,9],[9,10],[10,11],[11,12],
@@ -321,77 +308,58 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
                 
-                // Konversi ke koordinat layar
                 const getScreenPos = (lm) => {
                     let x = lm.x * window.innerWidth;
                     if (isFrontCamera) x = (1 - lm.x) * window.innerWidth;
                     return { x: x, y: lm.y * window.innerHeight };
                 };
 
-                // Gambar Rangka Tangan (Garis di jari-jari)
                 canvasCtx.lineWidth = 3;
-                canvasCtx.strokeStyle = "rgba(0, 255, 255, 0.6)";
+                canvasCtx.strokeStyle = "rgba(0, 255, 255, 0.4)";
                 HAND_CONNECTIONS.forEach(pair => {
                     const p1 = getScreenPos(landmarks[pair[0]]);
                     const p2 = getScreenPos(landmarks[pair[1]]);
-                    canvasCtx.beginPath();
-                    canvasCtx.moveTo(p1.x, p1.y);
-                    canvasCtx.lineTo(p2.x, p2.y);
-                    canvasCtx.stroke();
-                });
-
-                // Gambar Sendi (Titik)
-                canvasCtx.fillStyle = "white";
-                landmarks.forEach(lm => {
-                    const p = getScreenPos(lm);
-                    canvasCtx.beginPath();
-                    canvasCtx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
-                    canvasCtx.fill();
+                    canvasCtx.beginPath(); canvasCtx.moveTo(p1.x, p1.y); canvasCtx.lineTo(p2.x, p2.y); canvasCtx.stroke();
                 });
 
                 const indexTip = getScreenPos(landmarks[8]);
                 const thumbTip = getScreenPos(landmarks[4]);
-                
-                // Gambar "Garis Lurus / Laser" dari pangkal telunjuk ke ujung jari
                 const indexBase = getScreenPos(landmarks[5]);
-                // Ekstrapolasi garis sedikit menembus kursor agar terlihat seperti menunjuk
-                const pointerX = indexTip.x + (indexTip.x - indexBase.x) * 0.2;
-                const pointerY = indexTip.y + (indexTip.y - indexBase.y) * 0.2;
+                
+                // Laser pointer
+                const pointerX = indexTip.x + (indexTip.x - indexBase.x) * 0.3;
+                const pointerY = indexTip.y + (indexTip.y - indexBase.y) * 0.3;
 
                 canvasCtx.lineWidth = 4;
-                canvasCtx.strokeStyle = "rgba(0, 255, 0, 0.8)";
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(indexTip.x, indexTip.y);
-                canvasCtx.lineTo(pointerX, pointerY);
-                canvasCtx.stroke();
+                canvasCtx.strokeStyle = "rgba(0, 255, 0, 0.7)";
+                canvasCtx.beginPath(); canvasCtx.moveTo(indexTip.x, indexTip.y); canvasCtx.lineTo(pointerX, pointerY); canvasCtx.stroke();
 
-                // Update Posisi Kursor di Layar
                 cursor.style.display = 'block';
                 cursor.style.left = `${pointerX}px`;
                 cursor.style.top = `${pointerY}px`;
 
-                // Logika Klik (Pinch)
+                // Deteksi Menjepit
                 const pinchDist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
-                const isTouching = pinchDist < 60; // Toleransi jarak jari (px)
+                const isTouching = pinchDist < 55;
 
                 if (isTouching) {
                     cursor.classList.add('cursor-active');
                     if (!wasTouching) {
-                        // KLIK PERTAMA KALI JARI TERTUTUP
-                        triggerDirectClick(pointerX, pointerY);
+                        simulateMouseAction(pointerX, pointerY, 'mousedown'); // Mouse ditekan
                     } else if (activeDraggedWindow) {
-                        // DRAGGING BERLANGSUNG
                         handleDragging(pointerX, pointerY);
                     }
                     wasTouching = true;
                 } else {
                     cursor.classList.remove('cursor-active');
-                    // JARI DILEPAS
-                    if (activeDraggedWindow) {
-                        activeDraggedWindow.querySelector('.window-header').classList.remove('dragging');
-                        activeDraggedWindow = null;
+                    if (wasTouching) {
+                        simulateMouseAction(pointerX, pointerY, 'mouseup'); // Mouse dilepas
+                        
+                        if (activeDraggedWindow) {
+                            activeDraggedWindow.querySelector('.window-header').classList.remove('dragging');
+                            activeDraggedWindow = null;
+                        }
                     }
-                    document.querySelectorAll('.touched').forEach(el => el.classList.remove('touched'));
                     wasTouching = false;
                 }
             } else {
@@ -401,15 +369,13 @@
             }
         });
 
-        // Loop Kamera ke MediaPipe
         let lastVideoTime = -1;
         async function detectionLoop() {
             if (videoElement.readyState >= 2 && !videoElement.paused) {
                 document.getElementById('loading').style.display = 'none';
                 if (videoElement.currentTime !== lastVideoTime) {
                     lastVideoTime = videoElement.currentTime;
-                    try { await hands.send({ image: videoElement }); } 
-                    catch(e) {}
+                    try { await hands.send({ image: videoElement }); } catch(e) {}
                 }
             }
             requestAnimationFrame(detectionLoop);
@@ -417,64 +383,68 @@
 
         startCamera().then(() => detectionLoop());
 
-        // ================= LOGIKA INTERAKSI & KEYBOARD =================
-        
-        function triggerDirectClick(x, y) {
+        // ================= SISTEM MOUSE (KLIK & DRAG) =================
+        function simulateMouseAction(x, y, type) {
             cursor.style.display = 'none'; 
             const element = document.elementFromPoint(x, y);
             cursor.style.display = 'block';
-
+            
             if (!element) return;
 
-            // 1. Cek Dragging Jendela
-            const header = element.closest('.drag-handle');
-            if (header) {
-                const win = header.closest('.window-draggable');
-                if (win && win.style.display !== 'none') {
-                    activeDraggedWindow = win;
-                    header.classList.add('dragging');
-                    const rect = win.getBoundingClientRect();
-                    // Matikan transform agar perhitungan left/top akurat
-                    win.style.transform = 'none'; 
-                    win.style.left = rect.left + 'px';
-                    win.style.top = rect.top + 'px';
-                    
-                    dragOffsetX = x - rect.left;
-                    dragOffsetY = y - rect.top;
-                    return;
+            // 1. Sistem Drag Window
+            if (type === 'mousedown') {
+                const header = element.closest('.drag-handle');
+                if (header) {
+                    const win = header.closest('.window-draggable');
+                    if (win && win.style.display !== 'none') {
+                        activeDraggedWindow = win;
+                        header.classList.add('dragging');
+                        const rect = win.getBoundingClientRect();
+                        win.style.transform = 'none'; 
+                        win.style.left = rect.left + 'px';
+                        win.style.top = rect.top + 'px';
+                        
+                        dragOffsetX = x - rect.left;
+                        dragOffsetY = y - rect.top;
+                        return;
+                    }
                 }
             }
 
-            // 2. Cek Klik Tombol/Aplikasi
-            const target = element.closest('.interactive');
-            if (target) {
-                target.classList.add('touched');
+            // 2. Sistem Klik Asli (Synthetic Event)
+            const evOptions = { view: window, bubbles: true, cancelable: true, clientX: x, clientY: y };
+            
+            if (type === 'mousedown') {
+                element.dispatchEvent(new MouseEvent('mousedown', evOptions));
+                element.classList.add('touched'); // Efek visual
+            } 
+            else if (type === 'mouseup') {
+                element.dispatchEvent(new MouseEvent('mouseup', evOptions));
+                element.dispatchEvent(new MouseEvent('click', evOptions)); // Jalankan KLIK
                 
-                const targetId = target.id;
-                setTimeout(() => {
-                    target.classList.remove('touched');
+                element.classList.remove('touched');
+                
+                // Aksi UI Kita
+                const target = element.closest('.interactive');
+                if (target) {
+                    const id = target.id;
+                    if (id === 'icon-youtube' || id === 'icon-chrome' || id === 'icon-keyboard') openApp(id);
+                    else if (id === 'btn-close' || id === 'btn-close-kb') closeApps();
+                    else if (id === 'btn-camera') toggleCamera();
+                    else if (id === 'btn-fullscreen') toggleFullscreen();
                     
-                    // Tombol Sistem
-                    if (targetId === 'icon-youtube' || targetId === 'icon-chrome' || targetId === 'icon-keyboard') { openApp(targetId); }
-                    else if (targetId === 'btn-close' || targetId === 'btn-close-kb') { closeApps(); }
-                    else if (targetId === 'btn-camera') { toggleCamera(); }
-                    else if (targetId === 'btn-fullscreen') { toggleFullscreen(); }
-                    
-                    // Tombol Keyboard
                     else if (target.classList.contains('key-char')) {
-                        const val = target.innerText === 'SPACE' ? ' ' : target.innerText;
-                        kbOutput.innerText += val;
+                        kbOutput.innerText += (target.innerText === 'SPACE' ? ' ' : target.innerText);
                     }
                     else if (target.classList.contains('kb-del')) {
                         kbOutput.innerText = kbOutput.innerText.slice(0, -1);
                     }
-                }, 100); 
+                }
             }
         }
 
         function handleDragging(x, y) {
             if (!activeDraggedWindow) return;
-            // Update posisi jendela diam dan stabil mengikuti jari
             activeDraggedWindow.style.left = `${x - dragOffsetX}px`;
             activeDraggedWindow.style.top = `${y - dragOffsetY}px`;
         }
