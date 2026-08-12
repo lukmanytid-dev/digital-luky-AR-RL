@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vision Web AR - Stable</title>
+    <title>Vision Web AR - Stable & Keyboard</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
@@ -20,14 +20,17 @@
             margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #000; user-select: none;
-            /* Orientasi default diusahakan landscape */
             orientation: landscape; 
         }
 
-        /* Video Background */
+        /* Video & AR Canvas */
         video {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            object-fit: cover; z-index: 1; transition: transform 0.3s ease;
+            object-fit: cover; z-index: 1;
+        }
+        canvas#ar-canvas {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 2; pointer-events: none;
         }
         .mirror { transform: scaleX(-1); }
 
@@ -61,13 +64,8 @@
         #home-screen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             display: flex; gap: 50px; z-index: 10;
-            perspective: 1000px; /* Efek 3D */
         }
-
-        .app-icon-container {
-            display: flex; flex-direction: column; align-items: center; gap: 15px;
-        }
-        
+        .app-icon-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
         .app-icon {
             width: 100px; height: 100px; border-radius: 25px;
             display: flex; justify-content: center; align-items: center;
@@ -77,12 +75,7 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.4), inset 0 0 15px rgba(255,255,255,0.2);
             transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        
-        .app-icon.touched { 
-            transform: scale(0.9) translateY(5px); 
-            background: rgba(255,255,255,0.5); 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-        }
+        .app-icon.touched { transform: scale(0.9) translateY(5px); background: rgba(255,255,255,0.5); box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
         .app-label { color: white; font-weight: 600; text-shadow: 0 2px 5px rgba(0,0,0,0.8); font-size: 18px; letter-spacing: 1px;}
 
         /* Jendela Aplikasi Melayang */
@@ -99,10 +92,9 @@
             width: 100%; height: 60px; display: flex; align-items: center; justify-content: center;
             position: relative; background: rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        
         .drag-bar {
             width: 120px; height: 6px; background: rgba(255,255,255,0.4);
-            border-radius: 3px; cursor: grab; transition: 0.2s;
+            border-radius: 3px; cursor: grab; transition: 0.2s; pointer-events: none;
         }
         .window-header.dragging .drag-bar { background: #007AFF; transform: scaleY(1.5); }
 
@@ -114,25 +106,34 @@
         }
         .close-btn:hover, .close-btn.touched { background: #ff453a; transform: scale(1.1); }
 
-        /* Iframe yang solid */
-        iframe { 
-            width: 100%; flex: 1; border: none; background: #000; 
-            border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;
+        iframe { width: 100%; flex: 1; border: none; background: #000; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+
+        /* Keyboard Virtual */
+        #keyboard-window {
+            width: 800px; height: 400px; max-width: 90vw; background: rgba(30,30,30,0.85);
+            display: none; flex-direction: column; padding-bottom: 20px;
         }
-        
-        /* Overlay Loading */
+        .kb-display {
+            width: 90%; margin: 15px auto; height: 50px; background: rgba(0,0,0,0.5);
+            border-radius: 10px; color: white; font-size: 24px; padding: 10px 15px;
+            display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.2);
+            overflow: hidden; white-space: nowrap;
+        }
+        .kb-row { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+        .kb-key {
+            background: rgba(255,255,255,0.15); color: white; border-radius: 10px;
+            width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;
+            font-size: 20px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .kb-key.touched { background: #007AFF; transform: scale(0.95); }
+        .kb-space { width: 300px; }
+        .kb-del { width: 100px; background: rgba(255,80,80,0.2); }
+
+        /* Loading */
         #loading {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.9); color: white; display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 99999; font-size: 24px; font-weight: bold;
-        }
-
-        /* Landscape hint untuk HP */
-        @media screen and (orientation: portrait) {
-            #loading::after {
-                content: "Putar HP Anda ke mode Landscape (Miring) untuk pengalaman terbaik.";
-                display: block; margin-top: 20px; font-size: 16px; color: #007AFF; text-align: center; max-width: 80%;
-            }
         }
     </style>
 </head>
@@ -144,6 +145,8 @@
     </div>
 
     <video id="videoElement" class="mirror" autoplay playsinline></video>
+    <!-- Canvas untuk menggambar garis tangan & pointer -->
+    <canvas id="ar-canvas"></canvas>
 
     <div id="cursor"></div>
 
@@ -152,6 +155,7 @@
         <div class="btn-control interactive" id="btn-fullscreen" onclick="toggleFullscreen()">🖥️ Layar Penuh</div>
     </div>
 
+    <!-- Menu Utama -->
     <div id="home-screen">
         <div class="app-icon-container">
             <div class="app-icon interactive" id="icon-youtube" style="color: #ff0000;">▶</div>
@@ -161,47 +165,94 @@
             <div class="app-icon interactive" id="icon-chrome" style="color: #4285F4;">🌐</div>
             <span class="app-label">Browser</span>
         </div>
+        <div class="app-icon-container">
+            <div class="app-icon interactive" id="icon-keyboard" style="color: #fff;">⌨️</div>
+            <span class="app-label">Keyboard</span>
+        </div>
     </div>
 
-    <div id="app-window" class="app-window">
-        <div class="window-header interactive" id="window-header">
-            <div class="close-btn interactive" id="btn-close" onclick="closeApp()">✖</div>
+    <!-- Jendela YouTube/Browser -->
+    <div id="app-window" class="app-window window-draggable">
+        <div class="window-header interactive drag-handle">
+            <div class="close-btn interactive" id="btn-close">✖</div>
             <div class="drag-bar"></div>
         </div>
-        <iframe id="app-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        <iframe id="app-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <!-- Jendela Keyboard -->
+    <div id="keyboard-window" class="app-window window-draggable">
+        <div class="window-header interactive drag-handle">
+            <div class="close-btn interactive" id="btn-close-kb">✖</div>
+            <div class="drag-bar"></div>
+        </div>
+        <div class="kb-display" id="kb-output"></div>
+        
+        <div class="kb-row">
+            <div class="kb-key interactive key-char">Q</div><div class="kb-key interactive key-char">W</div>
+            <div class="kb-key interactive key-char">E</div><div class="kb-key interactive key-char">R</div>
+            <div class="kb-key interactive key-char">T</div><div class="kb-key interactive key-char">Y</div>
+            <div class="kb-key interactive key-char">U</div><div class="kb-key interactive key-char">I</div>
+            <div class="kb-key interactive key-char">O</div><div class="kb-key interactive key-char">P</div>
+        </div>
+        <div class="kb-row">
+            <div class="kb-key interactive key-char">A</div><div class="kb-key interactive key-char">S</div>
+            <div class="kb-key interactive key-char">D</div><div class="kb-key interactive key-char">F</div>
+            <div class="kb-key interactive key-char">G</div><div class="kb-key interactive key-char">H</div>
+            <div class="kb-key interactive key-char">J</div><div class="kb-key interactive key-char">K</div>
+            <div class="kb-key interactive key-char">L</div>
+        </div>
+        <div class="kb-row">
+            <div class="kb-key interactive key-char">Z</div><div class="kb-key interactive key-char">X</div>
+            <div class="kb-key interactive key-char">C</div><div class="kb-key interactive key-char">V</div>
+            <div class="kb-key interactive key-char">B</div><div class="kb-key interactive key-char">N</div>
+            <div class="kb-key interactive key-char">M</div>
+            <div class="kb-key interactive kb-del">DEL</div>
+        </div>
+        <div class="kb-row">
+            <div class="kb-key interactive kb-space key-char">SPACE</div>
+        </div>
     </div>
 
     <script>
         const videoElement = document.getElementById('videoElement');
+        const canvasElement = document.getElementById('ar-canvas');
+        const canvasCtx = canvasElement.getContext('2d');
         const cursor = document.getElementById('cursor');
+        
         const homeScreen = document.getElementById('home-screen');
         const appWindow = document.getElementById('app-window');
         const appFrame = document.getElementById('app-frame');
-        const windowHeader = document.getElementById('window-header');
+        const keyboardWindow = document.getElementById('keyboard-window');
+        const kbOutput = document.getElementById('kb-output');
         
         let isFrontCamera = true;
         let stream = null;
         
-        // State Interaksi
-        let lastTouchTime = 0;
-        let isDragging = false;
+        // State Interaksi Tangan
+        let wasTouching = false; 
+        let activeDraggedWindow = null; 
         let dragOffsetX = 0;
         let dragOffsetY = 0;
 
-        // ================= SISTEM KAMERA MANUAL (Anti-Flicker) =================
+        // Resize Canvas
+        function resizeCanvas() {
+            canvasElement.width = window.innerWidth;
+            canvasElement.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // ================= SISTEM KAMERA =================
         async function startCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
+            if (stream) { stream.getTracks().forEach(track => track.stop()); }
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: isFrontCamera ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
                 videoElement.srcObject = stream;
-                
                 if (isFrontCamera) videoElement.classList.add('mirror');
                 else videoElement.classList.remove('mirror');
-                
             } catch (err) {
                 alert("Gagal mengakses kamera: " + err.message);
             }
@@ -209,7 +260,7 @@
 
         function toggleCamera() {
             isFrontCamera = !isFrontCamera;
-            startCamera(); // Langsung timpa tanpa me-restart MediaPipe Loop!
+            startCamera(); 
         }
 
         function toggleFullscreen() {
@@ -223,25 +274,33 @@
         // ================= MANAJEMEN APLIKASI =================
         function openApp(appId) {
             homeScreen.style.display = 'none';
-            appWindow.style.display = 'flex';
-            appWindow.style.left = '50%';
-            appWindow.style.top = '50%';
-            
             if(appId === 'icon-youtube') {
-                // Parameter tambahan pada link YouTube agar jalan stabil di iframe
-                appFrame.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0";
+                appWindow.style.display = 'flex';
+                // Menghapus autoplay (autoplay=0) agar tidak langsung berbunyi
+                appFrame.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0";
             } else if (appId === 'icon-chrome') {
+                appWindow.style.display = 'flex';
                 appFrame.src = "https://id.wikipedia.org/"; 
+            } else if (appId === 'icon-keyboard') {
+                keyboardWindow.style.display = 'flex';
             }
+            // Reset posisi ke tengah saat baru buka
+            document.querySelectorAll('.app-window').forEach(win => {
+                if(win.style.display === 'flex') {
+                    win.style.left = '50%'; win.style.top = '50%';
+                    win.style.transform = 'translate(-50%, -50%)';
+                }
+            });
         }
 
-        function closeApp() {
+        function closeApps() {
             appWindow.style.display = 'none';
-            appFrame.src = ""; // Stop video/audio
+            keyboardWindow.style.display = 'none';
+            appFrame.src = ""; // Stop video
             homeScreen.style.display = 'flex';
         }
 
-        // ================= SETUP MEDIAPIPE =================
+        // ================= MEDIAPIPE & DRAWING =================
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
@@ -251,108 +310,173 @@
             minDetectionConfidence: 0.7, minTrackingConfidence: 0.7
         });
 
+        const HAND_CONNECTIONS = [
+            [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8], [5,9],[9,10],[10,11],[11,12],
+            [9,13],[13,14],[14,15],[15,16], [13,17],[0,17],[17,18],[18,19],[19,20]
+        ];
+
         hands.onResults((results) => {
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
                 
-                // Ambil titik telunjuk (8) dan jempol (4)
-                const indexTip = landmarks[8];
-                const thumbTip = landmarks[4];
+                // Konversi ke koordinat layar
+                const getScreenPos = (lm) => {
+                    let x = lm.x * window.innerWidth;
+                    if (isFrontCamera) x = (1 - lm.x) * window.innerWidth;
+                    return { x: x, y: lm.y * window.innerHeight };
+                };
+
+                // Gambar Rangka Tangan (Garis di jari-jari)
+                canvasCtx.lineWidth = 3;
+                canvasCtx.strokeStyle = "rgba(0, 255, 255, 0.6)";
+                HAND_CONNECTIONS.forEach(pair => {
+                    const p1 = getScreenPos(landmarks[pair[0]]);
+                    const p2 = getScreenPos(landmarks[pair[1]]);
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(p1.x, p1.y);
+                    canvasCtx.lineTo(p2.x, p2.y);
+                    canvasCtx.stroke();
+                });
+
+                // Gambar Sendi (Titik)
+                canvasCtx.fillStyle = "white";
+                landmarks.forEach(lm => {
+                    const p = getScreenPos(lm);
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+                    canvasCtx.fill();
+                });
+
+                const indexTip = getScreenPos(landmarks[8]);
+                const thumbTip = getScreenPos(landmarks[4]);
                 
-                let screenX = indexTip.x * window.innerWidth;
-                if (isFrontCamera) screenX = (1 - indexTip.x) * window.innerWidth; // Sesuaikan Mirror
-                let screenY = indexTip.y * window.innerHeight;
+                // Gambar "Garis Lurus / Laser" dari pangkal telunjuk ke ujung jari
+                const indexBase = getScreenPos(landmarks[5]);
+                // Ekstrapolasi garis sedikit menembus kursor agar terlihat seperti menunjuk
+                const pointerX = indexTip.x + (indexTip.x - indexBase.x) * 0.2;
+                const pointerY = indexTip.y + (indexTip.y - indexBase.y) * 0.2;
 
+                canvasCtx.lineWidth = 4;
+                canvasCtx.strokeStyle = "rgba(0, 255, 0, 0.8)";
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(indexTip.x, indexTip.y);
+                canvasCtx.lineTo(pointerX, pointerY);
+                canvasCtx.stroke();
+
+                // Update Posisi Kursor di Layar
                 cursor.style.display = 'block';
-                cursor.style.left = `${screenX}px`;
-                cursor.style.top = `${screenY}px`;
+                cursor.style.left = `${pointerX}px`;
+                cursor.style.top = `${pointerY}px`;
 
+                // Logika Klik (Pinch)
                 const pinchDist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
-                const isTouching = pinchDist < 0.05;
+                const isTouching = pinchDist < 60; // Toleransi jarak jari (px)
 
                 if (isTouching) {
                     cursor.classList.add('cursor-active');
-                    handleDirectTouch(screenX, screenY);
+                    if (!wasTouching) {
+                        // KLIK PERTAMA KALI JARI TERTUTUP
+                        triggerDirectClick(pointerX, pointerY);
+                    } else if (activeDraggedWindow) {
+                        // DRAGGING BERLANGSUNG
+                        handleDragging(pointerX, pointerY);
+                    }
+                    wasTouching = true;
                 } else {
                     cursor.classList.remove('cursor-active');
-                    
-                    if(isDragging) {
-                        isDragging = false;
-                        windowHeader.classList.remove('dragging');
+                    // JARI DILEPAS
+                    if (activeDraggedWindow) {
+                        activeDraggedWindow.querySelector('.window-header').classList.remove('dragging');
+                        activeDraggedWindow = null;
                     }
                     document.querySelectorAll('.touched').forEach(el => el.classList.remove('touched'));
+                    wasTouching = false;
                 }
             } else {
                 cursor.style.display = 'none';
-                isDragging = false;
+                wasTouching = false;
+                activeDraggedWindow = null;
             }
         });
 
-        // Loop Manual yang Lebih Stabil dari camera_utils.js
+        // Loop Kamera ke MediaPipe
         let lastVideoTime = -1;
         async function detectionLoop() {
             if (videoElement.readyState >= 2 && !videoElement.paused) {
-                // Sembunyikan loading jika video sudah jalan
                 document.getElementById('loading').style.display = 'none';
-                
                 if (videoElement.currentTime !== lastVideoTime) {
                     lastVideoTime = videoElement.currentTime;
-                    try {
-                        await hands.send({ image: videoElement });
-                    } catch(e) {
-                        console.error("Frame skip", e);
-                    }
+                    try { await hands.send({ image: videoElement }); } 
+                    catch(e) {}
                 }
             }
             requestAnimationFrame(detectionLoop);
         }
 
-        // Inisialisasi Pertama
-        startCamera().then(() => {
-            detectionLoop();
-        });
+        startCamera().then(() => detectionLoop());
 
-
-        // ================= LOGIKA SENTUHAN LANGSUNG (DIRECT TOUCH) =================
-        function handleDirectTouch(x, y) {
-            cursor.style.display = 'none'; // Hindari menghalangi klik
+        // ================= LOGIKA INTERAKSI & KEYBOARD =================
+        
+        function triggerDirectClick(x, y) {
+            cursor.style.display = 'none'; 
             const element = document.elementFromPoint(x, y);
             cursor.style.display = 'block';
 
             if (!element) return;
 
-            // 1. Drag & Drop Jendela
-            if (element.closest('#window-header') && appWindow.style.display === 'flex') {
-                if (!isDragging) {
-                    isDragging = true;
-                    windowHeader.classList.add('dragging');
-                    const rect = appWindow.getBoundingClientRect();
-                    dragOffsetX = x - (rect.left + rect.width / 2);
-                    dragOffsetY = y - (rect.top + rect.height / 2);
+            // 1. Cek Dragging Jendela
+            const header = element.closest('.drag-handle');
+            if (header) {
+                const win = header.closest('.window-draggable');
+                if (win && win.style.display !== 'none') {
+                    activeDraggedWindow = win;
+                    header.classList.add('dragging');
+                    const rect = win.getBoundingClientRect();
+                    // Matikan transform agar perhitungan left/top akurat
+                    win.style.transform = 'none'; 
+                    win.style.left = rect.left + 'px';
+                    win.style.top = rect.top + 'px';
+                    
+                    dragOffsetX = x - rect.left;
+                    dragOffsetY = y - rect.top;
+                    return;
                 }
-                
-                appWindow.style.left = `${x - dragOffsetX}px`;
-                appWindow.style.top = `${y - dragOffsetY}px`;
-                return; 
             }
 
-            // 2. Sentuh Tombol / Ikon
-            const now = Date.now();
-            if (now - lastTouchTime < 1000) return; // Cooldown 1 detik
-
+            // 2. Cek Klik Tombol/Aplikasi
             const target = element.closest('.interactive');
             if (target) {
                 target.classList.add('touched');
-                lastTouchTime = now;
-
+                
                 const targetId = target.id;
                 setTimeout(() => {
-                    if (targetId === 'icon-youtube' || targetId === 'icon-chrome') openApp(targetId);
-                    else if (targetId === 'btn-close') closeApp();
-                    else if (targetId === 'btn-camera') toggleCamera();
-                    else if (targetId === 'btn-fullscreen') toggleFullscreen();
-                }, 150); // Animasi
+                    target.classList.remove('touched');
+                    
+                    // Tombol Sistem
+                    if (targetId === 'icon-youtube' || targetId === 'icon-chrome' || targetId === 'icon-keyboard') { openApp(targetId); }
+                    else if (targetId === 'btn-close' || targetId === 'btn-close-kb') { closeApps(); }
+                    else if (targetId === 'btn-camera') { toggleCamera(); }
+                    else if (targetId === 'btn-fullscreen') { toggleFullscreen(); }
+                    
+                    // Tombol Keyboard
+                    else if (target.classList.contains('key-char')) {
+                        const val = target.innerText === 'SPACE' ? ' ' : target.innerText;
+                        kbOutput.innerText += val;
+                    }
+                    else if (target.classList.contains('kb-del')) {
+                        kbOutput.innerText = kbOutput.innerText.slice(0, -1);
+                    }
+                }, 100); 
             }
+        }
+
+        function handleDragging(x, y) {
+            if (!activeDraggedWindow) return;
+            // Update posisi jendela diam dan stabil mengikuti jari
+            activeDraggedWindow.style.left = `${x - dragOffsetX}px`;
+            activeDraggedWindow.style.top = `${y - dragOffsetY}px`;
         }
     </script>
 </body>
