@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web AR Spatial Computing</title>
+    <title>Web AR Spatial Computing V2</title>
     
-    <!-- Load MediaPipe untuk Deteksi Tangan -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
@@ -19,10 +18,11 @@
             height: 100vh;
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #000;
+            background-color: #111;
+            user-select: none;
         }
 
-        /* Kamera Background Fullscreen */
+        /* Video Kamera */
         video {
             position: absolute;
             top: 0;
@@ -30,95 +30,124 @@
             width: 100vw;
             height: 100vh;
             object-fit: cover;
-            transform: scaleX(-1); /* Efek Cermin agar tangan tidak terbalik */
             z-index: 1;
         }
+        /* Class ini akan dipasang/dilepas tergantung kamera depan/belakang */
+        .mirror {
+            transform: scaleX(-1);
+        }
 
-        /* Canvas untuk menggambar titik tangan & garis */
+        /* Canvas untuk Tulang Tangan & Laser */
         canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            transform: scaleX(-1);
             z-index: 2;
             pointer-events: none;
         }
+        .canvas-mirror {
+            transform: scaleX(-1);
+        }
 
-        /* Pointer Garis/Kursor */
+        /* Kursor Ujung Laser */
         #cursor {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            background-color: rgba(0, 255, 255, 0.8);
+            width: 25px;
+            height: 25px;
+            background-color: rgba(0, 255, 255, 0.9);
             border-radius: 50%;
             border: 2px solid white;
-            box-shadow: 0 0 15px cyan;
+            box-shadow: 0 0 20px cyan;
             transform: translate(-50%, -50%);
             z-index: 1000;
             pointer-events: none;
-            transition: transform 0.1s;
-        }
-        
-        .pinching {
-            background-color: rgba(255, 0, 0, 0.8) !important;
-            box-shadow: 0 0 20px red !important;
-            transform: translate(-50%, -50%) scale(0.7) !important;
+            display: none; /* Sembunyi kalau tangan nggak buka */
+            transition: width 0.1s, height 0.1s, background-color 0.1s;
         }
 
-        /* UI Melayang bergaya Glassmorphism */
+        .pinching {
+            background-color: rgba(255, 50, 50, 0.9) !important;
+            box-shadow: 0 0 30px red !important;
+            width: 15px !important;
+            height: 15px !important;
+        }
+
+        /* Glassmorphism Base */
         .glass-ui {
             position: absolute;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             z-index: 10;
-            display: flex;
             color: white;
         }
 
-        /* Dock Aplikasi */
-        #app-dock {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 30px;
-            gap: 20px;
+        /* Tombol Kontrol Atas (Kamera & Fullscreen) */
+        #top-controls {
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            padding: 10px 20px;
         }
 
-        .app-icon {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
+        .control-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s;
-            border: 1px solid transparent;
         }
-        
-        /* State saat kursor tangan berada di atas tombol */
-        .hovered {
-            background: rgba(255, 255, 255, 0.5) !important;
-            border: 1px solid white;
+        .control-btn.hovered {
+            background: rgba(255, 255, 255, 0.8);
+            color: black;
             transform: scale(1.1);
         }
 
-        /* Window Aplikasi Melayang (YouTube/Chrome) */
-        #app-window {
-            top: 50px;
+        /* Dock Aplikasi (Bawah Tengah) */
+        #app-dock {
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            width: 800px;
-            height: 450px;
+            padding: 15px 40px;
+            display: flex;
+            gap: 30px;
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 35px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .app-icon.hovered {
+            background: rgba(255, 255, 255, 0.6) !important;
+            border: 2px solid cyan;
+            transform: scale(1.2);
+            box-shadow: 0 0 20px cyan;
+        }
+
+        /* Jendela Aplikasi Melayang */
+        #app-window {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70vw;
+            height: 60vh;
             display: none;
             flex-direction: column;
             overflow: hidden;
@@ -126,70 +155,40 @@
 
         .window-header {
             width: 100%;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.5);
+            height: 50px;
+            background: rgba(0, 0, 0, 0.7);
             display: flex;
             align-items: center;
-            padding: 0 15px;
+            padding: 0 20px;
             box-sizing: border-box;
             justify-content: space-between;
+            font-size: 20px;
+            font-weight: bold;
         }
 
         .close-btn {
-            background: red;
-            width: 15px;
-            height: 15px;
+            background: #ff4757;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+        }
+        .close-btn.hovered {
+            transform: scale(1.3);
+            background: #ff6b81;
         }
 
         iframe {
             width: 100%;
             height: 100%;
             border: none;
+            background: white;
         }
 
-        /* Keyboard Melayang */
-        #keyboard {
-            bottom: 120px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 20px;
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .key-row {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .key {
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-        }
-
-        #search-bar {
-            width: 100%;
-            height: 40px;
-            background: rgba(0,0,0,0.5);
-            color: white;
-            border: none;
-            padding: 10px;
-            box-sizing: border-box;
-            font-size: 16px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        
+        /* Loading UI */
         #loading {
             position: absolute;
             top: 50%;
@@ -198,85 +197,89 @@
             color: white;
             font-size: 24px;
             z-index: 100;
-            background: rgba(0,0,0,0.7);
-            padding: 20px;
-            border-radius: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <div id="loading">Memuat Kamera & AI Deteksi Tangan...</div>
+    <div id="loading">Menghidupkan Kamera & AI...<br><small>Pastikan izin kamera diberikan</small></div>
 
-    <!-- Tampilan Kamera & AI -->
-    <video id="videoElement" autoplay playsinline></video>
-    <canvas id="canvasElement"></canvas>
+    <video id="videoElement" class="mirror" autoplay playsinline></video>
+    <canvas id="canvasElement" class="canvas-mirror"></canvas>
 
-    <!-- Kursor Tangan (Pointer) -->
     <div id="cursor"></div>
 
-    <!-- Window Browser / YouTube Melayang -->
+    <div id="top-controls" class="glass-ui">
+        <div class="control-btn interactive" id="btn-camera">📸 Ganti Kamera</div>
+        <div class="control-btn interactive" id="btn-fullscreen">🖥️ Full Screen</div>
+    </div>
+
+    <div id="app-dock" class="glass-ui">
+        <div class="app-icon interactive" id="btn-youtube" style="color: #ff0000;">▶️</div>
+        <div class="app-icon interactive" id="btn-chrome" style="color: #4285F4;">🌐</div>
+    </div>
+
     <div id="app-window" class="glass-ui">
         <div class="window-header">
             <span id="window-title">Browser</span>
-            <div class="close-btn app-icon" id="close-app"></div>
+            <div class="close-btn interactive" id="close-app">✖</div>
         </div>
         <iframe id="browser-frame" src=""></iframe>
     </div>
 
-    <!-- Keyboard Melayang -->
-    <div id="keyboard" class="glass-ui">
-        <input type="text" id="search-bar" placeholder="Ketik di sini..." readonly>
-        <div class="key-row">
-            <div class="key app-icon">Q</div>
-            <div class="key app-icon">W</div>
-            <div class="key app-icon">E</div>
-            <div class="key app-icon">R</div>
-            <div class="key app-icon">T</div>
-            <div class="key app-icon">Y</div>
-        </div>
-        <div class="key-row">
-            <div class="key app-icon">A</div>
-            <div class="key app-icon">S</div>
-            <div class="key app-icon">D</div>
-            <div class="key app-icon">F</div>
-            <div class="key app-icon">G</div>
-        </div>
-        <div class="key-row">
-            <div class="key app-icon" style="width: 200px;">SPACE</div>
-            <div class="key app-icon" style="background: rgba(0, 255, 0, 0.3);">GO</div>
-        </div>
-    </div>
-
-    <!-- Dock Aplikasi di Bawah -->
-    <div id="app-dock" class="glass-ui">
-        <div class="app-icon" id="btn-youtube" style="color: #ff0000;">▶</div>
-        <div class="app-icon" id="btn-chrome" style="color: #00ff00;">🌐</div>
-        <div class="app-icon" id="btn-keyboard">⌨️</div>
-    </div>
-
     <script>
-        // Elemen-elemen DOM
         const videoElement = document.getElementById('videoElement');
         const canvasElement = document.getElementById('canvasElement');
         const canvasCtx = canvasElement.getContext('2d');
         const cursor = document.getElementById('cursor');
         const loading = document.getElementById('loading');
+        
         const appWindow = document.getElementById('app-window');
-        const keyboard = document.getElementById('keyboard');
         const browserFrame = document.getElementById('browser-frame');
         const windowTitle = document.getElementById('window-title');
-        const searchBar = document.getElementById('search-bar');
 
+        let isFrontCamera = true;
+        let stream = null;
         let isPinching = false;
         let lastPinchTime = 0;
         let hoveredElement = null;
 
-        // --- SETUP MEDIAPIPE HANDS ---
-        const hands = new Hands({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        // --- SISTEM KAMERA MANUAL ---
+        async function startCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
             }
+            const constraints = {
+                video: {
+                    facingMode: isFrontCamera ? "user" : "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = stream;
+                
+                // Atur efek cermin (Mirror)
+                if (isFrontCamera) {
+                    videoElement.classList.add('mirror');
+                    canvasElement.classList.add('canvas-mirror');
+                } else {
+                    videoElement.classList.remove('mirror');
+                    canvasElement.classList.remove('canvas-mirror');
+                }
+            } catch (err) {
+                alert("Error akses kamera: " + err.message);
+            }
+        }
+
+        // --- SETUP MEDIAPIPE AI ---
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
 
         hands.setOptions({
@@ -285,83 +288,107 @@
             minDetectionConfidence: 0.7,
             minTrackingConfidence: 0.7
         });
-
         hands.onResults(onResults);
 
-        // --- MULAI KAMERA ---
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 1280,
-            height: 720
-        });
-        camera.start().then(() => {
-            loading.style.display = 'none';
-        });
+        // Loop untuk mengirim frame ke AI
+        async function detectFrame() {
+            if (videoElement.readyState >= 2) {
+                await hands.send({ image: videoElement });
+            }
+            requestAnimationFrame(detectFrame);
+        }
 
-        // --- LOGIKA DETEKSI TANGAN & GESTUR ---
+        // Inisiasi awal
+        videoElement.addEventListener('loadeddata', () => {
+            loading.style.display = 'none';
+            detectFrame();
+        });
+        startCamera();
+
+
+        // --- LOGIKA UTAMA: TANGAN, LASER, & KLIK ---
         function onResults(results) {
-            // Sesuaikan ukuran canvas
             canvasElement.width = videoElement.videoWidth;
             canvasElement.height = videoElement.videoHeight;
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-            // Jika tangan terdeteksi
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
 
-                // Gambar kerangka tangan (sebagai penanda visual di layar/canvas)
-                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 2});
-                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1, radius: 3});
+                // Hitung jari yang terbuka
+                let openFingers = 0;
+                if (landmarks[8].y < landmarks[6].y) openFingers++;  // Telunjuk
+                if (landmarks[12].y < landmarks[10].y) openFingers++; // Tengah
+                if (landmarks[16].y < landmarks[14].y) openFingers++; // Manis
+                if (landmarks[20].y < landmarks[18].y) openFingers++; // Kelingking
+                // Jempol (agak tricky, kita asumsikan 4 jari lain cukup untuk menandakan tangan "terbuka")
 
-                // Titik telunjuk (8) dan jempol (4)
                 const indexTip = landmarks[8];
                 const thumbTip = landmarks[4];
+                const wrist = landmarks[0];
 
-                // Hitung koordinat kursor di layar (dibalik karena kamera mirror)
-                const screenX = (1 - indexTip.x) * window.innerWidth;
-                const screenY = indexTip.y * window.innerHeight;
+                // Posisi Kursor di Layar (Hitung efek cermin kamera depan)
+                let screenX = indexTip.x * window.innerWidth;
+                if (isFrontCamera) screenX = (1 - indexTip.x) * window.innerWidth;
+                let screenY = indexTip.y * window.innerHeight;
 
-                // Gerakkan Kursor HTML
-                cursor.style.left = `${screenX}px`;
-                cursor.style.top = `${screenY}px`;
+                // Cek Jarak Cubitan (Pinch)
+                const pinchDistance = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+                const isCurrentlyPinching = pinchDistance < 0.05;
 
-                // Cek Jarak antara Telunjuk dan Jempol (Gesture Cubit / Tutup)
-                const distance = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
-                const pinchThreshold = 0.05; // Makin kecil, makin rapat cubitannya
+                // LOGIKA 1: Jika 5 (atau minimal 4) jari terbuka -> Muncul Laser & Kursor
+                if (openFingers >= 3 || isCurrentlyPinching) { 
+                    cursor.style.display = 'block';
+                    cursor.style.left = `${screenX}px`;
+                    cursor.style.top = `${screenY}px`;
 
-                // Logika Hover UI
-                checkHover(screenX, screenY);
+                    // Gambar Tulang & Garis Laser di Canvas
+                    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: 'rgba(0, 255, 0, 0.5)', lineWidth: 2});
+                    
+                    if (!isCurrentlyPinching) {
+                        // Gambar Garis Laser dari pergelangan tangan ke ujung telunjuk
+                        canvasCtx.beginPath();
+                        canvasCtx.moveTo(wrist.x * canvasElement.width, wrist.y * canvasElement.height);
+                        canvasCtx.lineTo(indexTip.x * canvasElement.width, indexTip.y * canvasElement.height);
+                        canvasCtx.strokeStyle = "rgba(0, 255, 255, 0.8)";
+                        canvasCtx.lineWidth = 4;
+                        canvasCtx.stroke();
+                    }
 
-                if (distance < pinchThreshold) {
+                    checkHover(screenX, screenY);
+                } else {
+                    cursor.style.display = 'none';
+                    if (hoveredElement) hoveredElement.classList.remove('hovered');
+                    hoveredElement = null;
+                }
+
+                // LOGIKA 2: Jika Dicubit -> Klik!
+                if (isCurrentlyPinching) {
                     if (!isPinching) {
                         isPinching = true;
                         cursor.classList.add('pinching');
-                        triggerClick(); // Eksekusi klik saat cubit
+                        triggerClick();
                     }
                 } else {
                     isPinching = false;
                     cursor.classList.remove('pinching');
                 }
+            } else {
+                cursor.style.display = 'none';
+                if (hoveredElement) hoveredElement.classList.remove('hovered');
             }
             canvasCtx.restore();
         }
 
-        // --- SISTEM KLIK & HOVER VIRTUAL ---
+        // --- SISTEM HOVER & KLIK ---
         function checkHover(x, y) {
-            // Hilangkan status hover sebelumnya
-            if (hoveredElement) {
-                hoveredElement.classList.remove('hovered');
-            }
-
-            // Sembunyikan kursor sementara agar tidak menghalangi deteksi elemen di bawahnya
-            cursor.style.display = 'none';
+            if (hoveredElement) hoveredElement.classList.remove('hovered');
+            cursor.style.display = 'none'; // Sembunyikan kursor sedetik biar script bisa lihat elemen di bawahnya
             const element = document.elementFromPoint(x, y);
             cursor.style.display = 'block';
 
-            if (element && element.classList.contains('app-icon')) {
+            if (element && element.classList.contains('interactive')) {
                 hoveredElement = element;
                 hoveredElement.classList.add('hovered');
             } else {
@@ -370,49 +397,42 @@
         }
 
         function triggerClick() {
-            // Hindari double click cepat (cooldown 500ms)
             const now = Date.now();
-            if (now - lastPinchTime < 500) return; 
+            if (now - lastPinchTime < 700) return; // Anti-spam klik (jeda 0.7 detik)
             lastPinchTime = now;
 
             if (hoveredElement) {
                 const actionId = hoveredElement.id;
-                const text = hoveredElement.innerText;
 
-                // Logika Menu
                 if (actionId === 'btn-youtube') {
                     appWindow.style.display = 'flex';
                     windowTitle.innerText = "YouTube";
-                    // Menggunakan embed youtube agar tidak diblokir CORS
                     browserFrame.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"; 
                 } 
                 else if (actionId === 'btn-chrome') {
                     appWindow.style.display = 'flex';
-                    windowTitle.innerText = "Chrome Browser";
-                    // Wikipedia bisa di-iframe sebagai contoh browser
-                    browserFrame.src = "https://id.wikipedia.org/"; 
-                }
-                else if (actionId === 'btn-keyboard') {
-                    keyboard.style.display = keyboard.style.display === 'flex' ? 'none' : 'flex';
+                    windowTitle.innerText = "Browser Mode";
+                    browserFrame.src = "https://id.wikipedia.org/"; // Wiki sebagai pengganti Chrome yg blokir iframe
                 }
                 else if (actionId === 'close-app') {
                     appWindow.style.display = 'none';
-                    browserFrame.src = ""; // Hentikan video/audio
+                    browserFrame.src = "";
                 }
-                // Logika Mengetik Keyboard
-                else if (text === 'SPACE') {
-                    searchBar.value += ' ';
+                else if (actionId === 'btn-camera') {
+                    isFrontCamera = !isFrontCamera;
+                    startCamera();
                 }
-                else if (text === 'GO') {
-                    alert("Mencari: " + searchBar.value);
-                    searchBar.value = ''; // Reset
-                }
-                else if (text.length === 1) { // Jika tombol huruf
-                    searchBar.value += text;
+                else if (actionId === 'btn-fullscreen') {
+                    if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen().catch(err => {
+                            alert("Error Fullscreen: " + err.message);
+                        });
+                    } else {
+                        document.exitFullscreen();
+                    }
                 }
             }
         }
     </script>
 </body>
 </html>
-
