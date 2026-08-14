@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Reality Fusion Core - Spatial Web Pro</title>
+    
+    <!-- Memuat Library Eksternal -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Layar Latar Belakang Kamera & Sensor Tangan -->
+    <video id="webcam-video" autoplay playsinline></video>
+    <canvas id="hand-canvas"></canvas>
+
+    <!-- UI Overlay Modern dengan efek Glassmorphism -->
+    <div id="ui-overlay">
+        <div class="glass-panel">
+            <h2>🌐 Reality Fusion Core</h2>
+            <p id="status-text">Status: Sistem Offline</p>
+            <p id="coordinate-text">X: 0.00, Y: 0.00, Z: 0.00</p>
+            <button id="start-btn" class="glow-btn">INISIALISASI SISTEM</button>
+        </div>
+    </div>
+
+    <!-- Scene A-Frame (Dioptimalkan agar tidak lag) -->
+    <a-scene vr-mode-ui="enabled: false" renderer="alpha: true; antialias: false; precision: medium;" clear-color="transparent" embedded>
+        
+        <!-- Kamera Pengguna -->
+        <a-camera position="0 1.6 0" look-controls="enabled: true; magicWindowTrackingEnabled: true;" id="player-camera"></a-camera>
+
+        <!-- KURSOR TANGAN (Mengikuti Jari Telunjuk) -->
+        <a-entity id="hand-cursor" visible="false">
+            <a-sphere radius="0.04" color="#00FFFF" material="emissive: #00FFFF; opacity: 0.8; transparent: true"></a-sphere>
+            <a-light type="point" color="#00FFFF" intensity="0.5" distance="1"></a-light>
+        </a-entity>
+
+        <!-- PANEL APLIKASI MELAYANG -->
+        <a-entity id="floating-panel" position="0 1.5 -3" track-coordinates>
+            <a-plane width="2.2" height="1.4" material="color: #0a192f; transparent: true; opacity: 0.8; shader: flat;"></a-plane>
+            <a-text value="XR DASHBOARD" align="center" position="0 0.5 0.02" width="5" color="#00FFFF"></a-text>
+            
+            <!-- Elemen Interaktif 3D -->
+            <a-box id="app-1" position="-0.5 -0.1 0.05" depth="0.1" width="0.6" height="0.6" material="color: #FF0055" animation="property: rotation; to: 0 360 0; loop: true; dur: 5000" class="interactable"></a-box>
+            <a-box id="app-2" position="0.5 -0.1 0.05" depth="0.1" width="0.6" height="0.6" material="color: #4285F4" animation="property: rotation; to: 0 -360 0; loop: true; dur: 4500" class="interactable"></a-box>
+        </a-entity>
+
+    </a-scene>
+
+    <script src="reality-fusion-core.js"></script>
+    <script src="enjoythevr.js"></script>
+</body>
+</html>
